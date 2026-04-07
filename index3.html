@@ -497,6 +497,26 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
+    /* ── Env buttons ── */
+    .env-btn {
+      padding: 7px 18px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .env-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .env-btn.active-env {
+      background: rgba(88,166,255,.15);
+      border-color: var(--accent-blue);
+      color: var(--accent-blue);
+      font-weight: 700;
+    }
+
     /* ── Utility ── */
     .text-accent-blue   { color: var(--accent-blue)   !important; }
     .text-accent-red    { color: var(--accent-red)    !important; }
@@ -519,14 +539,20 @@
     ErrorScope
   </div>
   <nav>
-    <div class="nav-item active">
-      <i class="bi bi-activity"></i> Overview
+    <div class="nav-item active" onclick="showPage('overview')">
+      <i class="bi bi-activity"></i> Backend Errors
     </div>
-    <div class="nav-item">
+    <div class="nav-item" onclick="showPage('app-errors')">
+      <i class="bi bi-phone"></i> App Errors
+    </div>
+    <div class="nav-item" style="display:none">
       <i class="bi bi-list-ul"></i> Error Logs
     </div>
-    <div class="nav-item">
+    <div class="nav-item" style="display:none">
       <i class="bi bi-bar-chart-line"></i> Analytics
+    </div>
+    <div class="nav-item" onclick="showPage('settings')">
+      <i class="bi bi-gear"></i> Settings
     </div>
   </nav>
   <div style="padding:16px 20px; border-top:1px solid var(--border)">
@@ -555,7 +581,7 @@
 
   <div id="last-updated" style="font-size:11px;color:var(--text-muted)"></div>
 
-  <button id="refreshBtn" class="btn btn-sm" style="background:var(--bg-hover);border:1px solid var(--border);color:var(--text-primary);font-size:12px;gap:6px;display:flex;align-items:center;" onclick="fetchAll()">
+  <button id="refreshBtn" class="btn btn-sm" style="background:var(--bg-hover);border:1px solid var(--border);color:var(--text-primary);font-size:12px;gap:6px;display:flex;align-items:center;" onclick="document.getElementById('page-app-errors').style.display!=='none' ? fetchAppErrors() : fetchAll()">
     <i class="bi bi-arrow-clockwise"></i> Refresh
   </button>
 
@@ -572,7 +598,86 @@
      MAIN CONTENT
 ════════════════════════════════════════════════════════════ -->
 <main id="main">
-  <div class="content-area">
+
+  <!-- ═══════════ SETTINGS PAGE ═══════════ -->
+  <div id="page-settings" style="display:none" class="content-area">
+    <div class="section-card" style="max-width:640px">
+      <div class="card-head">
+        <span><i class="bi bi-gear me-2"></i>Environment Settings</span>
+      </div>
+      <div class="card-body-inner">
+
+        <!-- Environment selector -->
+        <div style="margin-bottom:24px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);margin-bottom:10px">Active Environment</div>
+          <div style="display:flex;gap:8px">
+            <button id="env-btn-staging" class="env-btn active-env" onclick="switchEnv('staging')">
+              <i class="bi bi-code-slash me-1"></i> Staging
+            </button>
+            <button id="env-btn-prod" class="env-btn" onclick="switchEnv('prod')">
+              <i class="bi bi-cloud-check me-1"></i> Production
+            </button>
+          </div>
+        </div>
+
+        <!-- Staging URL -->
+        <div style="margin-bottom:20px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);margin-bottom:6px">
+            <i class="bi bi-circle-fill me-1" style="font-size:7px;color:var(--accent-yellow)"></i>Staging Base URL
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="staging-url-display" style="flex:1;font-family:'Cascadia Code','Fira Code',monospace;font-size:12px;color:var(--text-primary);background:var(--bg-surface);border:1px solid var(--border);border-radius:6px;padding:8px 12px;word-break:break-all"></span>
+            <button class="btn btn-sm" style="background:var(--bg-hover);border:1px solid var(--border);color:var(--text-secondary);white-space:nowrap" onclick="openEditUrl('staging')">
+              <i class="bi bi-pencil me-1"></i>Edit
+            </button>
+            <button class="btn btn-sm" style="background:transparent;border:1px solid var(--border);color:var(--text-muted);white-space:nowrap" onclick="resetUrl('staging')" title="Reset to default">
+              <i class="bi bi-arrow-counterclockwise"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Prod URL -->
+        <div style="margin-bottom:20px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);margin-bottom:6px">
+            <i class="bi bi-circle-fill me-1" style="font-size:7px;color:var(--accent-green)"></i>Production Base URL
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="prod-url-display" style="flex:1;font-family:'Cascadia Code','Fira Code',monospace;font-size:12px;color:var(--text-primary);background:var(--bg-surface);border:1px solid var(--border);border-radius:6px;padding:8px 12px;word-break:break-all"></span>
+            <button class="btn btn-sm" style="background:var(--bg-hover);border:1px solid var(--border);color:var(--text-secondary);white-space:nowrap" onclick="openEditUrl('prod')">
+              <i class="bi bi-pencil me-1"></i>Edit
+            </button>
+            <button class="btn btn-sm" style="background:transparent;border:1px solid var(--border);color:var(--text-muted);white-space:nowrap" onclick="resetUrl('prod')" title="Reset to default">
+              <i class="bi bi-arrow-counterclockwise"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Edit URL inline form (hidden by default) -->
+        <div id="edit-url-form" style="display:none;background:var(--bg-surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px">
+          <div id="edit-url-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);margin-bottom:8px"></div>
+          <input type="url" id="edit-url-input" class="form-control form-control-sm" placeholder="https://..." style="margin-bottom:10px;font-family:'Cascadia Code','Fira Code',monospace" />
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm" style="background:var(--accent-blue);color:#fff;border:none;font-weight:600" onclick="saveEditUrl()">
+              <i class="bi bi-check2 me-1"></i>Save
+            </button>
+            <button class="btn btn-sm" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary)" onclick="closeEditUrl()">
+              Cancel
+            </button>
+          </div>
+        </div>
+
+        <!-- Active API endpoint info -->
+        <div style="background:rgba(88,166,255,.08);border:1px solid rgba(88,166,255,.25);border-radius:8px;padding:12px 14px;font-size:12px">
+          <div style="font-weight:700;color:var(--accent-blue);margin-bottom:4px"><i class="bi bi-link-45deg me-1"></i>Active API Endpoint</div>
+          <div id="active-api-display" style="font-family:'Cascadia Code','Fira Code',monospace;color:var(--text-secondary);word-break:break-all"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ OVERVIEW PAGE ═══════════ -->
+  <div id="page-overview" class="content-area">
 
     <!-- ─── FILTER PANEL ─── -->
     <div class="filter-panel">
@@ -770,7 +875,176 @@
       </div>
     </div><!-- /section-card -->
 
-  </div><!-- /content-area -->
+  </div><!-- /#page-overview -->
+
+  <!-- ═══════════ APP ERRORS PAGE ═══════════ -->
+  <div id="page-app-errors" style="display:none" class="content-area">
+
+    <!-- Filter panel -->
+    <div class="filter-panel">
+      <div class="row g-2 align-items-end">
+        <div class="col-md-2 col-6">
+          <label for="ae-start">Start Date</label>
+          <input type="date" id="ae-start" class="form-control form-control-sm" />
+        </div>
+        <div class="col-md-2 col-6">
+          <label for="ae-end">End Date</label>
+          <input type="date" id="ae-end" class="form-control form-control-sm" />
+        </div>
+        <div class="col-md-2 col-6">
+          <label for="ae-key">Error Key</label>
+          <select id="ae-key" class="form-select form-select-sm">
+            <option value="">All</option>
+            <option value="exception">exception</option>
+            <option value="logic_error">logic_error</option>
+            <option value="ui_error">ui_error</option>
+            <option value="api_timeout">api_timeout</option>
+            <option value="permission_error">permission_error</option>
+          </select>
+        </div>
+        <div class="col-md-3 col-9">
+          <label for="ae-search">Search</label>
+          <input type="text" id="ae-search" class="form-control form-control-sm" placeholder="Error message, user..." />
+        </div>
+        <div class="col-md-1 col-3">
+          <button class="btn btn-sm w-100" style="background:var(--accent-blue);color:#fff;border:none;font-weight:600;" onclick="applyAppFilters()">Apply</button>
+        </div>
+      </div>
+      <div class="mt-2">
+        <button class="btn btn-sm" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);font-size:11px;" onclick="clearAppFilters()">
+          <i class="bi bi-x-circle me-1"></i>Clear
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-md col-6">
+        <div class="stat-card d-flex justify-content-between align-items-start">
+          <div>
+            <div class="label">Total Reports</div>
+            <div class="value text-accent-red" id="ae-stat-total">—</div>
+            <div class="sub">All time</div>
+          </div>
+          <div class="icon-wrap" style="background:rgba(248,81,73,.12)"><i class="bi bi-bug-fill text-accent-red"></i></div>
+        </div>
+      </div>
+      <div class="col-md col-6">
+        <div class="stat-card d-flex justify-content-between align-items-start">
+          <div>
+            <div class="label">Reports Today</div>
+            <div class="value text-accent-yellow" id="ae-stat-today">—</div>
+            <div class="sub">Last 24 hours</div>
+          </div>
+          <div class="icon-wrap" style="background:rgba(227,179,65,.12)"><i class="bi bi-calendar-x-fill text-accent-yellow"></i></div>
+        </div>
+      </div>
+      <div class="col-md col-6">
+        <div class="stat-card d-flex justify-content-between align-items-start">
+          <div>
+            <div class="label">Unique Users</div>
+            <div class="value text-accent-blue" id="ae-stat-users">—</div>
+            <div class="sub">Affected users</div>
+          </div>
+          <div class="icon-wrap" style="background:rgba(88,166,255,.12)"><i class="bi bi-people-fill text-accent-blue"></i></div>
+        </div>
+      </div>
+      <div class="col-md col-6">
+        <div class="stat-card d-flex justify-content-between align-items-start">
+          <div>
+            <div class="label">Error Types</div>
+            <div class="value text-accent-purple" id="ae-stat-keys">—</div>
+            <div class="sub">Unique error keys</div>
+          </div>
+          <div class="icon-wrap" style="background:rgba(188,140,255,.12)"><i class="bi bi-tags-fill text-accent-purple"></i></div>
+        </div>
+      </div>
+      <div class="col-md col-6">
+        <div class="stat-card d-flex justify-content-between align-items-start">
+          <div>
+            <div class="label">Devices</div>
+            <div class="value text-accent-green" id="ae-stat-devices">—</div>
+            <div class="sub">Unique devices</div>
+          </div>
+          <div class="icon-wrap" style="background:rgba(63,185,80,.12)"><i class="bi bi-phone-fill text-accent-green"></i></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="section-card h-100">
+          <div class="card-head"><span><i class="bi bi-pie-chart-fill me-2 text-accent-purple"></i>Error Key Distribution</span></div>
+          <div class="card-body-inner d-flex align-items-center justify-content-center" style="min-height:220px">
+            <div class="chart-wrap" style="width:200px;height:200px">
+              <canvas id="aeKeyChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="section-card h-100">
+          <div class="card-head"><span><i class="bi bi-pie-chart me-2 text-accent-blue"></i>Platform Distribution</span></div>
+          <div class="card-body-inner d-flex align-items-center justify-content-center" style="min-height:220px">
+            <div class="chart-wrap" style="width:200px;height:200px">
+              <canvas id="aePlatformChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="section-card h-100">
+          <div class="card-head"><span><i class="bi bi-graph-up-arrow me-2 text-accent-blue"></i>Daily Trend</span></div>
+          <div class="card-body-inner" style="min-height:220px">
+            <div class="chart-wrap" style="height:200px">
+              <canvas id="aeTrendChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reports table -->
+    <div class="section-card">
+      <div class="card-head">
+        <span><i class="bi bi-list-columns-reverse me-2 text-accent-yellow"></i>App Error Reports</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span id="ae-table-count" style="font-size:11px;color:var(--text-muted);font-weight:400"></span>
+          <select id="aeLimitSelect" class="form-select form-select-sm" style="width:80px" onchange="aeState.limit=+this.value;aeState.page=1;fetchAppErrors()">
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="50">50</option>
+          </select>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table id="aeTable" style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="background:var(--bg-surface);border-bottom:2px solid var(--border)">
+              <th style="width:28px"></th>
+              <th style="padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted);white-space:nowrap">Time</th>
+              <th style="padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted)">Error Key</th>
+              <th style="padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted)">Error Message</th>
+              <th style="padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted)">Device</th>
+              <th style="padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted)">App Ver</th>
+              <th style="padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted)">User</th>
+              <th style="padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--text-muted)">Screenshot</th>
+            </tr>
+          </thead>
+          <tbody id="aeTableBody">
+            <tr><td colspan="8"><div class="skeleton-line"></div><div class="skeleton-line" style="width:80%"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination-bar">
+        <div id="ae-pag-info" style="color:var(--text-muted)">—</div>
+        <div class="page-btns" id="ae-pag-btns"></div>
+      </div>
+    </div>
+
+  </div><!-- /#page-app-errors -->
+
 </main><!-- /main -->
 
 <!-- ═══════════════════════════════════════════════════════════
@@ -797,6 +1071,22 @@
   </div>
 </div>
 
+<!-- App Error Detail Modal -->
+<div class="modal fade" id="aeModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-phone me-2 text-accent-purple"></i>App Error Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="aeModalBody" style="padding:20px"></div>
+      <div class="modal-footer" style="justify-content:flex-start;padding:12px 20px">
+        <button type="button" class="btn btn-sm" data-bs-dismiss="modal" style="background:var(--bg-hover);border:1px solid var(--border);color:var(--text-primary)">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Toast container -->
 <div id="toast-container"></div>
 
@@ -807,9 +1097,24 @@
 'use strict';
 
 /* ──────────────────────────────────────────────
-   CONFIG
+   CONFIG  –  environment / URL settings
 ────────────────────────────────────────────── */
-const API_BASE = 'https://dukastaging.selcom.dev:7443/api/v4/errors';
+const ENV_DEFAULTS = {
+  staging: 'https://dukastaging.selcom.dev:7443/api',
+  prod:    'https://portal.duka.direct/api'
+};
+const API_PATH = '/v4/errors';
+
+const envSettings = {
+  env:        localStorage.getItem('env')         || 'staging',
+  stagingUrl: localStorage.getItem('stagingUrl')  || ENV_DEFAULTS.staging,
+  prodUrl:    localStorage.getItem('prodUrl')      || ENV_DEFAULTS.prod,
+};
+
+function getApiBase() {
+  const base = envSettings.env === 'prod' ? envSettings.prodUrl : envSettings.stagingUrl;
+  return base.replace(/\/$/, '') + API_PATH;
+}
 
 /* ──────────────────────────────────────────────
    STATE
@@ -842,6 +1147,7 @@ function toggleTheme() {
     : '<i class="bi bi-moon-stars"></i>';
   // Re-render charts with new colors
   renderCharts(window._lastData);
+  if (window._aeData) renderAeCharts(window._aeData);
 }
 
 /* ──────────────────────────────────────────────
@@ -882,7 +1188,7 @@ async function fetchAll() {
   setRefreshBtnLoading(true);
   try {
     const qs = buildQuery();
-    const res = await fetch(`${API_BASE}?${qs}`);
+    const res = await fetch(`${getApiBase()}?${qs}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
     const data = json.data || json; // handle both wrapped & unwrapped
@@ -1525,6 +1831,455 @@ document.addEventListener('keydown', e => {
 });
 
 /* ──────────────────────────────────────────────
+   APP ERRORS  –  state + fetch + render
+────────────────────────────────────────────── */
+const APP_ERROR_PATH = '/v4/app-error-analytics';
+
+let aeState = {
+  page: 1, limit: 20,
+  startDate: '', endDate: '',
+  errorKey: '', search: '',
+  loaded: false,
+  charts: { keys: null, platform: null, trend: null }
+};
+
+function getAppErrorUrl() {
+  const base = envSettings.env === 'prod' ? envSettings.prodUrl : envSettings.stagingUrl;
+  return base.replace(/\/$/, '') + APP_ERROR_PATH;
+}
+
+function applyAppFilters() {
+  aeState.startDate = document.getElementById('ae-start').value;
+  aeState.endDate   = document.getElementById('ae-end').value;
+  aeState.errorKey  = document.getElementById('ae-key').value;
+  aeState.search    = document.getElementById('ae-search').value;
+  aeState.page      = 1;
+  fetchAppErrors();
+}
+
+function clearAppFilters() {
+  document.getElementById('ae-key').value    = '';
+  document.getElementById('ae-search').value = '';
+  const today = new Date(), past = new Date();
+  past.setDate(past.getDate() - 30);
+  document.getElementById('ae-end').value   = today.toISOString().slice(0, 10);
+  document.getElementById('ae-start').value = past.toISOString().slice(0, 10);
+  aeState.errorKey = ''; aeState.search = '';
+  aeState.startDate = document.getElementById('ae-start').value;
+  aeState.endDate   = document.getElementById('ae-end').value;
+  aeState.page = 1;
+  fetchAppErrors();
+}
+
+async function fetchAppErrors() {
+  const btn = document.getElementById('refreshBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-sm"></span> Loading';
+  try {
+    const params = new URLSearchParams();
+    params.set('page',  aeState.page);
+    params.set('limit', aeState.limit);
+    if (aeState.startDate) params.set('startDate', aeState.startDate);
+    if (aeState.endDate)   params.set('endDate',   aeState.endDate);
+    if (aeState.errorKey)  params.set('error_key', aeState.errorKey);
+    if (aeState.search)    params.set('search',    aeState.search);
+
+    const res  = await fetch(`${getAppErrorUrl()}?${params.toString()}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    const data = json.data || json;
+    window._aeData = data;
+    aeState.loaded = true;
+
+    renderAeStats(data.statistics);
+    renderAeCharts(data);
+    renderAeTable(data.reports || [], data.pagination);
+    updateLastUpdated();
+    showToast('App errors refreshed', 'success');
+  } catch (err) {
+    console.error(err);
+    showToast(`App errors error: ${err.message}`, 'error');
+    document.getElementById('aeTableBody').innerHTML =
+      `<tr><td colspan="8"><div class="empty-state"><i class="bi bi-wifi-off" style="color:var(--accent-red)"></i>Failed to load. Check network or API.</div></td></tr>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Refresh';
+  }
+}
+
+/* Stats */
+function renderAeStats(s) {
+  if (!s) return;
+  animateNumber('ae-stat-total',   s.totalReports    || 0);
+  animateNumber('ae-stat-today',   s.reportsToday    || 0);
+  animateNumber('ae-stat-users',   s.uniqueUsers     || 0);
+  animateNumber('ae-stat-keys',    s.uniqueErrorKeys || 0);
+  animateNumber('ae-stat-devices', s.uniqueDevices   || 0);
+}
+
+/* Charts */
+function renderAeCharts(data) {
+  renderAeKeyChart(data.topErrorKeys || []);
+  renderAePlatformChart(data.platformDistribution || []);
+  renderAeTrendChart(data.dailyTrend || []);
+}
+
+function renderAeKeyChart(keys) {
+  const ctx = document.getElementById('aeKeyChart').getContext('2d');
+  const { labels: lblColor } = getChartColors();
+  const palette = ['#f85149','#e3b341','#58a6ff','#3fb950','#bc8cff','#ffa657'];
+  const labels = keys.map(k => k.error_key);
+  const values = keys.map(k => k.count);
+  if (aeState.charts.keys) aeState.charts.keys.destroy();
+  aeState.charts.keys = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: palette, borderWidth: 2, borderColor: 'transparent', hoverOffset: 6 }] },
+    options: {
+      cutout: '65%',
+      plugins: {
+        legend: { position: 'bottom', labels: { color: lblColor, font: { size: 11 }, padding: 10 } },
+        tooltip: { callbacks: { label: c => ` ${c.label}: ${c.raw.toLocaleString()}` } }
+      }
+    }
+  });
+}
+
+function renderAePlatformChart(platforms) {
+  const ctx = document.getElementById('aePlatformChart').getContext('2d');
+  const { labels: lblColor } = getChartColors();
+  const palette = ['#58a6ff','#3fb950','#ffa657','#bc8cff'];
+  const labels = platforms.map(p => p.platform);
+  const values = platforms.map(p => p.count);
+  if (aeState.charts.platform) aeState.charts.platform.destroy();
+  aeState.charts.platform = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: palette, borderWidth: 2, borderColor: 'transparent', hoverOffset: 6 }] },
+    options: {
+      cutout: '65%',
+      plugins: {
+        legend: { position: 'bottom', labels: { color: lblColor, font: { size: 11 }, padding: 10 } },
+        tooltip: { callbacks: { label: c => ` ${c.label}: ${c.raw.toLocaleString()}` } }
+      }
+    }
+  });
+}
+
+function renderAeTrendChart(trend) {
+  const ctx = document.getElementById('aeTrendChart').getContext('2d');
+  const { grid, labels: lblColor } = getChartColors();
+  if (aeState.charts.trend) aeState.charts.trend.destroy();
+  aeState.charts.trend = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: trend.map(d => d.date),
+      datasets: [{
+        label: 'Reports', data: trend.map(d => d.count),
+        borderColor: '#bc8cff', backgroundColor: 'rgba(188,140,255,.12)',
+        fill: true, tension: 0.4, pointBackgroundColor: '#bc8cff',
+        pointRadius: 4, pointHoverRadius: 6, borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+      scales: {
+        x: { grid: { color: grid }, ticks: { color: lblColor, font: { size: 11 } } },
+        y: { grid: { color: grid }, ticks: { color: lblColor, font: { size: 11 }, precision: 0 }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+/* Table */
+const AE_KEY_COLORS = {
+  exception:        'rgba(248,81,73,.15)',
+  logic_error:      'rgba(227,179,65,.15)',
+  ui_error:         'rgba(88,166,255,.15)',
+  api_timeout:      'rgba(255,166,87,.15)',
+  permission_error: 'rgba(188,140,255,.15)',
+};
+const AE_KEY_TEXT = {
+  exception:        'var(--accent-red)',
+  logic_error:      'var(--accent-yellow)',
+  ui_error:         'var(--accent-blue)',
+  api_timeout:      'var(--accent-orange)',
+  permission_error: 'var(--accent-purple)',
+};
+
+function aeKeyBadge(key) {
+  const bg   = AE_KEY_COLORS[key] || 'rgba(139,148,158,.15)';
+  const color = AE_KEY_TEXT[key] || 'var(--text-secondary)';
+  return `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:${bg};color:${color}">${escHtml(key||'—')}</span>`;
+}
+
+function renderAeTable(reports, pagination) {
+  const tbody = document.getElementById('aeTableBody');
+  if (!reports || reports.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><i class="bi bi-inbox"></i>No reports found.</div></td></tr>`;
+    renderAePagination({ page:1, totalPages:1, total:0, limit: aeState.limit });
+    document.getElementById('ae-table-count').textContent = '';
+    return;
+  }
+
+  tbody.innerHTML = reports.map((r, i) => {
+    const ts      = formatTime(r.timestamp);
+    const device  = r.device ? `${escHtml(r.device.brand||'')} ${escHtml(r.device.model||'')}` : '—';
+    const platform= r.device ? escHtml(r.device.platform||'') : '—';
+    const appVer  = r.app ? escHtml(r.app.version||'—') : '—';
+    const user    = r.app_user ? escHtml(r.app_user.name||r.app_user.id||'—') : '—';
+    const msg     = r.errorMessage || '—';
+    const hasShot = !!r.screenshot_url;
+
+    return `
+      <tr data-aeidx="${i}" onclick="aeToggleRow(${i}, event)" style="border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s" class="ae-data-row">
+        <td style="width:28px;text-align:center;color:var(--text-muted)">
+          <i class="bi bi-chevron-right" id="ae-chev-${i}" style="transition:transform .2s;font-size:10px"></i>
+        </td>
+        <td class="mono" style="padding:10px 14px;font-size:12px;white-space:nowrap;color:var(--text-secondary)">${ts}</td>
+        <td style="padding:10px 14px">${aeKeyBadge(r.error_key)}</td>
+        <td style="padding:10px 14px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--text-secondary)" title="${escHtml(msg)}">${escHtml(msg)}</td>
+        <td style="padding:10px 14px;font-size:12px;color:var(--text-secondary)">${device}<br><span style="font-size:10px;color:var(--text-muted)">${platform} · Android ${escHtml((r.device||{}).version||'')}</span></td>
+        <td style="padding:10px 14px;font-size:12px;color:var(--text-primary);font-weight:600">${appVer}</td>
+        <td style="padding:10px 14px;font-size:12px;color:var(--text-secondary)">${user}</td>
+        <td style="padding:10px 14px;text-align:center">
+          ${hasShot ? `<a href="${escHtml(r.screenshot_url)}" target="_blank" onclick="event.stopPropagation()" style="color:var(--accent-blue);font-size:12px"><i class="bi bi-image me-1"></i>View</a>` : '<span style="color:var(--text-muted);font-size:11px">—</span>'}
+        </td>
+      </tr>
+      <tr id="ae-detail-${i}" style="display:none;background:var(--bg-surface)">
+        <td colspan="8" style="padding:0">
+          <div style="padding:16px 20px;font-size:12px">
+            ${buildAeDetailInline(r, i)}
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+
+  window._aeReports = reports;
+  const total = pagination ? (pagination.total || reports.length) : reports.length;
+  document.getElementById('ae-table-count').textContent = `${total.toLocaleString()} total`;
+  renderAePagination(pagination || { page: aeState.page, totalPages: 1, total, limit: aeState.limit });
+}
+
+function buildAeDetailInline(r, i) {
+  const stack = r.stackTrace
+    ? `<div class="detail-field"><div class="df-label">Stack Trace</div><pre style="background:var(--bg-base);border:1px solid var(--border);border-radius:6px;padding:12px;color:var(--accent-orange);font-size:11px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;margin:0">${escHtml(r.stackTrace)}</pre></div>`
+    : '';
+  const deviceHtml = r.device ? `
+    <div class="detail-field"><div class="df-label">Device</div>
+    <div class="df-value" style="font-size:12px">
+      ${escHtml(r.device.brand||'')} ${escHtml(r.device.model||'')} &nbsp;·&nbsp; ${escHtml(r.device.platform||'')} ${escHtml(r.device.version||'')}
+      &nbsp;·&nbsp; SDK ${r.device.sdk||'—'} &nbsp;·&nbsp; ${r.device.is_physical ? 'Physical' : 'Emulator'}
+    </div></div>` : '';
+  const appHtml = r.app ? `
+    <div class="detail-field"><div class="df-label">App</div>
+    <div class="df-value" style="font-size:12px">v${escHtml(r.app.version||'—')} (build ${escHtml(r.app.build||'—')}) · ${escHtml(r.app.package||'—')}</div></div>` : '';
+  const stateHtml = r.state ? `
+    <div class="detail-field"><div class="df-label">App State</div>
+    <div class="df-value" style="font-size:12px">Theme: ${escHtml(r.state.theme||'—')} · Env: ${escHtml(r.state.env||'—')} · Route: ${escHtml(r.state.current_route||'—')} · Uptime: ${escHtml(r.state.uptime||'—')} · Online: ${r.state.is_online ? 'Yes' : 'No'}</div></div>` : '';
+  const userHtml = r.app_user ? `
+    <div class="detail-field"><div class="df-label">User</div>
+    <div class="df-value" style="font-size:12px">${escHtml(r.app_user.name||'—')} · ${escHtml(r.app_user.phone||'—')} · ID: <span class="mono">${escHtml(r.app_user.id||'—')}</span></div></div>` : '';
+  return `
+    <div class="row g-3">
+      <div class="col-md-6">${deviceHtml}${appHtml}${userHtml}${stateHtml}</div>
+      <div class="col-md-6">${stack}</div>
+    </div>
+    <div class="mt-2 text-end">
+      <button class="btn btn-sm" style="background:var(--accent-blue);color:#fff;border:none;font-size:11px;" onclick="openAeModal(${i});event.stopPropagation()">
+        <i class="bi bi-fullscreen me-1"></i>Full Details
+      </button>
+    </div>`;
+}
+
+const _aeExpanded = new Set();
+function aeToggleRow(i, event) {
+  if (event && event.target.tagName === 'BUTTON') return;
+  if (event && event.target.tagName === 'A') return;
+  const row   = document.getElementById(`ae-detail-${i}`);
+  const chev  = document.getElementById(`ae-chev-${i}`);
+  const dataRow = document.querySelector(`tr[data-aeidx="${i}"]`);
+  if (_aeExpanded.has(i)) {
+    _aeExpanded.delete(i);
+    row.style.display = 'none';
+    chev.style.transform = 'rotate(0deg)';
+    dataRow.style.background = '';
+  } else {
+    _aeExpanded.add(i);
+    row.style.display = '';
+    chev.style.transform = 'rotate(90deg)';
+    dataRow.style.background = 'var(--bg-hover)';
+  }
+}
+
+/* Modal */
+function openAeModal(i) {
+  const r = (window._aeReports || [])[i];
+  if (!r) return;
+
+  const screenshotHtml = r.screenshot_url
+    ? `<div class="detail-field"><div class="df-label">Screenshot</div><a href="${escHtml(r.screenshot_url)}" target="_blank"><img src="${escHtml(r.screenshot_url)}" style="max-width:100%;max-height:300px;border-radius:8px;border:1px solid var(--border);margin-top:6px" /></a></div>`
+    : '';
+
+  const logsHtml = r.logs
+    ? `<div class="detail-field"><div class="df-label">Logs</div><pre class="stack-pre" style="color:var(--accent-green);max-height:300px;overflow-y:auto">${escHtml(r.logs)}</pre></div>`
+    : '';
+
+  const stackHtml = r.stackTrace
+    ? `<div class="detail-field"><div class="df-label">Stack Trace</div><pre class="stack-pre">${escHtml(r.stackTrace)}</pre></div>`
+    : '';
+
+  const extraHtml = r.extra_data
+    ? `<div class="detail-field"><div class="df-label">Extra Data</div><pre class="stack-pre" style="color:var(--accent-blue)">${escHtml(JSON.stringify(r.extra_data, null, 2))}</pre></div>`
+    : '';
+
+  document.getElementById('aeModalBody').innerHTML = `
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="detail-field"><div class="df-label">Request ID</div><div class="df-value mono" style="font-size:12px">${escHtml(r.requestId||'—')}</div></div>
+        <div class="detail-field"><div class="df-label">Timestamp</div><div class="df-value mono" style="font-size:12px">${escHtml(r.timestamp||'—')}</div></div>
+        <div class="detail-field">
+          <div class="df-label">Error Key</div>
+          <div class="df-value">${aeKeyBadge(r.error_key)}</div>
+        </div>
+        <div class="detail-field"><div class="df-label">Custom Message</div><div class="df-value" style="color:var(--text-secondary)">${escHtml(r.custom_message||'—')}</div></div>
+        ${r.app_user ? `<div class="detail-field"><div class="df-label">User</div><div class="df-value">${escHtml(r.app_user.name||'—')} · ${escHtml(r.app_user.phone||'—')}<br><span class="mono" style="font-size:11px;color:var(--text-muted)">${escHtml(r.app_user.id||'—')}</span></div></div>` : ''}
+        ${r.app ? `<div class="detail-field"><div class="df-label">App</div><div class="df-value">v${escHtml(r.app.version||'—')} (build ${escHtml(r.app.build||'—')})<br><span class="mono" style="font-size:11px;color:var(--text-muted)">${escHtml(r.app.package||'—')}</span></div></div>` : ''}
+      </div>
+      <div class="col-md-6">
+        ${r.device ? `<div class="detail-field"><div class="df-label">Device</div><div class="df-value">
+          <div>${escHtml(r.device.brand||'')} ${escHtml(r.device.model||'')} (${r.device.is_physical ? 'Physical' : 'Emulator'})</div>
+          <div style="font-size:12px;color:var(--text-muted)">Platform: ${escHtml(r.device.platform||'—')} · Version: ${escHtml(r.device.version||'—')} · SDK: ${r.device.sdk||'—'}</div>
+          <div style="font-size:12px;color:var(--text-muted)">Manufacturer: ${escHtml(r.device.manufacturer||'—')}</div>
+        </div></div>` : ''}
+        ${r.state ? `<div class="detail-field"><div class="df-label">App State</div><div class="df-value" style="font-size:12px">
+          Theme: ${escHtml(r.state.theme||'—')} · Online: ${r.state.is_online?'<span style="color:var(--accent-green)">Yes</span>':'<span style="color:var(--accent-red)">No</span>'}<br>
+          Env: ${escHtml(r.state.env||'—')}<br>
+          Route: ${escHtml(r.state.current_route||'—')} · Uptime: ${escHtml(r.state.uptime||'—')}
+        </div></div>` : ''}
+        ${screenshotHtml}
+      </div>
+      <div class="col-12">
+        <div class="detail-field"><div class="df-label">Error Message</div><div class="df-value text-accent-red" style="font-weight:600">${escHtml(r.errorMessage||'—')}</div></div>
+        ${stackHtml}${extraHtml}${logsHtml}
+      </div>
+    </div>`;
+
+  new bootstrap.Modal(document.getElementById('aeModal')).show();
+}
+
+/* Pagination */
+function renderAePagination(pag) {
+  if (!pag) return;
+  const { page, totalPages, total, limit } = { totalPages: 1, limit: aeState.limit, ...pag };
+  const start = total === 0 ? 0 : (page - 1) * limit + 1;
+  const end   = Math.min(page * limit, total);
+  document.getElementById('ae-pag-info').textContent =
+    total > 0 ? `Showing ${start}–${end} of ${total.toLocaleString()}` : 'No records';
+
+  const container = document.getElementById('ae-pag-btns');
+  container.innerHTML = '';
+
+  const prev = makePageBtn('<i class="bi bi-chevron-left"></i>', page <= 1);
+  prev.onclick = () => { aeState.page = page - 1; fetchAppErrors(); };
+  container.appendChild(prev);
+
+  pageWindow(page, totalPages).forEach((p, idx, arr) => {
+    if (idx > 0 && p - arr[idx-1] > 1) {
+      const dots = makePageBtn('…', true); dots.style.cursor = 'default';
+      container.appendChild(dots);
+    }
+    const btn = makePageBtn(p, false);
+    if (p === page) btn.classList.add('active');
+    btn.onclick = () => { aeState.page = p; fetchAppErrors(); };
+    container.appendChild(btn);
+  });
+
+  const next = makePageBtn('<i class="bi bi-chevron-right"></i>', page >= totalPages);
+  next.onclick = () => { aeState.page = page + 1; fetchAppErrors(); };
+  container.appendChild(next);
+}
+
+/* ──────────────────────────────────────────────
+   PAGE NAVIGATION
+────────────────────────────────────────────── */
+function showPage(page) {
+  document.getElementById('page-overview').style.display   = page === 'overview'   ? '' : 'none';
+  document.getElementById('page-app-errors').style.display = page === 'app-errors' ? '' : 'none';
+  document.getElementById('page-settings').style.display   = page === 'settings'   ? '' : 'none';
+  document.querySelectorAll('#sidebar nav .nav-item').forEach(el => el.classList.remove('active'));
+  // nav indices: 0=Overview, 1=AppErrors, 2=ErrorLogs(hidden), 3=Analytics(hidden), 4=Settings
+  const navMap = { overview: 0, 'app-errors': 1, settings: 4 };
+  const idx = navMap[page];
+  if (idx != null) document.querySelectorAll('#sidebar nav .nav-item')[idx].classList.add('active');
+  if (page === 'app-errors' && !aeState.loaded) fetchAppErrors();
+}
+
+/* ──────────────────────────────────────────────
+   SETTINGS – ENV & URL MANAGEMENT
+────────────────────────────────────────────── */
+let _editingEnv = null;
+
+function initSettings() {
+  renderSettingsUI();
+}
+
+function renderSettingsUI() {
+  document.getElementById('staging-url-display').textContent = envSettings.stagingUrl;
+  document.getElementById('prod-url-display').textContent    = envSettings.prodUrl;
+  document.getElementById('active-api-display').textContent  = getApiBase();
+  document.getElementById('env-btn-staging').classList.toggle('active-env', envSettings.env === 'staging');
+  document.getElementById('env-btn-prod').classList.toggle('active-env',    envSettings.env === 'prod');
+}
+
+function switchEnv(env) {
+  envSettings.env = env;
+  localStorage.setItem('env', env);
+  renderSettingsUI();
+  showToast(`Switched to ${env === 'prod' ? 'Production' : 'Staging'}`, 'success');
+}
+
+function openEditUrl(env) {
+  _editingEnv = env;
+  const current = env === 'prod' ? envSettings.prodUrl : envSettings.stagingUrl;
+  document.getElementById('edit-url-label').textContent = `Edit ${env === 'prod' ? 'Production' : 'Staging'} URL`;
+  document.getElementById('edit-url-input').value = current;
+  document.getElementById('edit-url-form').style.display = '';
+  document.getElementById('edit-url-input').focus();
+}
+
+function closeEditUrl() {
+  _editingEnv = null;
+  document.getElementById('edit-url-form').style.display = 'none';
+}
+
+function saveEditUrl() {
+  const val = document.getElementById('edit-url-input').value.trim();
+  if (!val) { showToast('URL cannot be empty', 'error'); return; }
+  if (_editingEnv === 'prod') {
+    envSettings.prodUrl = val;
+    localStorage.setItem('prodUrl', val);
+  } else {
+    envSettings.stagingUrl = val;
+    localStorage.setItem('stagingUrl', val);
+  }
+  closeEditUrl();
+  renderSettingsUI();
+  showToast('URL saved', 'success');
+}
+
+function resetUrl(env) {
+  if (env === 'prod') {
+    envSettings.prodUrl = ENV_DEFAULTS.prod;
+    localStorage.removeItem('prodUrl');
+  } else {
+    envSettings.stagingUrl = ENV_DEFAULTS.staging;
+    localStorage.removeItem('stagingUrl');
+  }
+  renderSettingsUI();
+  showToast('Reset to default', 'info');
+}
+
+/* ──────────────────────────────────────────────
    INIT
 ────────────────────────────────────────────── */
 (function init() {
@@ -1537,6 +2292,13 @@ document.addEventListener('keydown', e => {
   state.endDate   = document.getElementById('f-end').value;
   state.startDate = document.getElementById('f-start').value;
 
+  // App errors filter default dates
+  document.getElementById('ae-end').value   = today.toISOString().slice(0, 10);
+  document.getElementById('ae-start').value = past.toISOString().slice(0, 10);
+  aeState.endDate   = document.getElementById('ae-end').value;
+  aeState.startDate = document.getElementById('ae-start').value;
+
+  initSettings();
   fetchAll();
 })();
 </script>
